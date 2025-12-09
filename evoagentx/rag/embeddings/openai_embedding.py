@@ -1,12 +1,13 @@
 import os
 import warnings
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
-from openai import OpenAI
 from llama_index.core.embeddings import BaseEmbedding
+from openai import NOT_GIVEN, OpenAI
 
 from evoagentx.core.logging import logger
-from .base import BaseEmbeddingWrapper, EmbeddingProvider, SUPPORTED_MODELS
+
+from .base import SUPPORTED_MODELS, BaseEmbeddingWrapper, EmbeddingProvider
 
 # Mapping of default embedding dimensions for OpenAI models
 MODEL_DIMENSIONS = {
@@ -80,7 +81,7 @@ class OpenAIEmbedding(BaseEmbedding):
             response = self.client.embeddings.create(
                 input=[query],
                 model=self.model_name,
-                dimensions=self.dimensions,
+                dimensions=self.dimensions or NOT_GIVEN,
                 **self.kwargs
             )
             return response.data[0].embedding
@@ -95,7 +96,7 @@ class OpenAIEmbedding(BaseEmbedding):
             response = self.client.embeddings.create(
                 input=[text],
                 model=self.model_name,
-                dimensions=self.dimensions,
+                dimensions=self.dimensions or NOT_GIVEN,
                 **self.kwargs
             )
             return response.data[0].embedding
@@ -114,7 +115,7 @@ class OpenAIEmbedding(BaseEmbedding):
             response = self.client.embeddings.create(
                 input=texts,
                 model=self.model_name,
-                dimensions=self.dimensions,
+                dimensions=self.dimensions or NOT_GIVEN,
                 **self.kwargs
             )
             return [item.embedding for item in response.data]
