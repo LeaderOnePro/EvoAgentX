@@ -1,3 +1,10 @@
+TOOL_CALL_FORMAT = """
+<tool_call>
+{tool_calls}
+</tool_call>
+"""
+
+
 OUTPUT_EXTRACTION_PROMPT = """
 You are given the following text:
 {text}
