@@ -1,6 +1,10 @@
-# from pydantic import BaseModel
-from typing import Optional, List
+from typing import List, Optional
+
+from jsonschema import Draft7Validator
+from pydantic import model_validator
+
 from .module import BaseModule
+
 
 class BaseConfig(BaseModule):
 
@@ -53,15 +57,32 @@ class BaseConfig(BaseModule):
 
 class Parameter(BaseModule):
     """Parameter class used to define configuration parameters.
-    
+
     Attributes:
         name: Parameter name
-        type: Parameter type
+        type: Parameter type, support json & python type. if type is `object` or `array`, then schema is required.
         description: Parameter description
         required: Whether the parameter is required, defaults to True
+        json_schema: the json schema of the parameter, required when type is `object` or `array`.
     """
     name: str
-    type: str 
-    description: str 
-    required: Optional[bool] = True 
+    type: str
+    description: str
+    required: Optional[bool] = True
+    json_schema: Optional[dict] = None
+
+    @model_validator(mode="after")
+    def _validate_type_and_schema(self):
+        from ..utils.utils import string_to_python_type
+        if self.type not in string_to_python_type:
+            raise ValueError(f"Invalid `type`: {self.type}. Allowed: {list(string_to_python_type.keys())}")
+        if self.type in {"object", "array"} and not self.json_schema:
+            raise ValueError("`json_schema` is required when `type` is `object` or `array`.")
+        if self.json_schema is not None:
+            try:
+                Draft7Validator.check_schema(self.json_schema)
+            except Exception as e:
+                raise ValueError(f"Invalid `json_schema` for '{self.name}': {self.json_schema}.") from e
+            assert self.type == self.json_schema.get("type"), f"`type` and `json_schema.type` must be the same if `json_schema` is provided. But got `type`: {self.type}, `json_schema.type`: {self.json_schema.get('type')}"
+        return self
 
