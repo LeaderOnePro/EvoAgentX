@@ -24,10 +24,13 @@ litellm-proxy-extras>=0.2.16
 dashscope>=1.23.4
 pydantic>=2.9.0
 # pydantic>=2.9.0,<=2.10.6
-# pydantic-settings==2.8.1
 # pydantic_core>=2.23.2,<=2.27.2
 loguru>=0.7.3 
 pandas>=2.2.3
+httpx>=0.24.1
+python-dotenv>=1.0.0
+pymongo>=4.6.0
+psycopg2-binary>=2.9.0
 matplotlib>=3.10.0
 # --extra-index-url https://download.pytorch.org/whl/cu118
 # torch==2.2.1 
@@ -38,23 +41,6 @@ faiss-cpu==1.8.0.post1
 # faiss-gpu
 textgrad>=0.1.8
 dspy
-
-
-# fast api dependencies
-fastapi>=0.111.0,<0.112.0
-motor>=3.7.0
-uvicorn>=0.29.0,<0.30.0
-sqlalchemy>=2.0.38
-python-jose>=3.3.0
-passlib>=1.7.4
-python-multipart>=0.0.6
-bcrypt>=4.0.1
-celery>=5.3.4
-redis>=5.0.0
-httpx>=0.24.1
-asgi-lifespan>=1.0.1
-python-dotenv>=1.0.0
-jwt>=1.3.1
 
 bs4
 # rag
@@ -98,7 +84,6 @@ Pillow
 transformers>=4.50.0,<4.51.0
 voyageai
 
-psycopg2-binary>=2.9.0
 feedparser
 markdown
 ujson>=5.9.0
