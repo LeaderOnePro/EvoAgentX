@@ -98,7 +98,8 @@ optimizers = [
     "ujson>=5.9.0"
 ]
 benchmarks = [
-    "sympy"
+    "sympy",
+    "antlr4-python3-runtime==4.11"
 ]
 viz = [
     "matplotlib>=3.10.0"
@@ -147,6 +148,7 @@ all = [
     "cloudpickle",
     "ujson>=5.9.0",
     "sympy",
+    "antlr4-python3-runtime==4.11",
     "matplotlib>=3.10.0"
 ]
 
