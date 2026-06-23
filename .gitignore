@@ -87,6 +87,8 @@ celerybeat-schedule
 # dotenv
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # virtualenv
 .venv
@@ -112,20 +114,17 @@ ENV/
 
 # Misc
 .DS_Store
+/AGENTS.md
+/CLAUDE.md
 
 # result or debug files
 outputs/
-examples/output/**
-!examples/output/tetris_game/
-!examples/output/tetris_game/workflow_demo_4o_mini.json
-!examples/output/tools/
-!examples/output/tools/*
 debug*/
 debug*.py
 logs/
 server/config/app.env 
 server/tunnel_info.json 
-workflows/
+/workflows/
 workflows.db 
 evaluation_pipeline/checkpoints/ 
 evaluation_pipeline/results/
