@@ -22,8 +22,8 @@ from .model_utils import Cost, cost_manager
 class OpenRouterLLM(BaseLLM):
 
     def init_model(self):
-        config: OpenRouterConfig = self.config
-        self._client = self._init_client(config)
+        self._client = None
+        self._async_client = None
         self._default_ignore_fields = ["llm_type", "openrouter_key", "openrouter_base", "openrouter_model_base", "output_response"]
     
     def _init_client(self, config: OpenRouterConfig):
@@ -31,6 +31,24 @@ class OpenRouterLLM(BaseLLM):
 
     def _init_async_client(self, config: OpenRouterConfig):
         return AsyncOpenAI(api_key=config.openrouter_key, base_url=config.openrouter_base)
+
+    def ensure_client(self):
+        if self._client is None or self._client.is_closed():
+            self._client = self._init_client(self.config)
+        return self._client
+
+    def close_client(self):
+        if self._client is not None and not self._client.is_closed():
+            self._client.close()
+
+    def ensure_async_client(self):
+        if self._async_client is None or self._async_client.is_closed():
+            self._async_client = self._init_async_client(self.config)
+        return self._async_client
+
+    async def close_async_client(self):
+        if self._async_client is not None and not self._async_client.is_closed():
+            await self._async_client.close()
 
     def formulate_messages(self, prompts: List[str], system_messages: Optional[List[str]] = None) -> List[List[dict]]:
         if system_messages:
@@ -188,8 +206,9 @@ class OpenRouterLLM(BaseLLM):
         output_response = kwargs.get("output_response", self.config.output_response)
 
         try:
+            client = self.ensure_client()
             completion_params = self.get_completion_params(**kwargs)
-            response = self._client.chat.completions.create(messages=messages, **completion_params)
+            response = client.chat.completions.create(messages=messages, **completion_params)
             if stream:
                 output = self.get_stream_output(response, output_response=output_response)
             else:
@@ -207,7 +226,7 @@ class OpenRouterLLM(BaseLLM):
         output_response = kwargs.get("output_response", self.config.output_response)
 
         try:
-            async_client = self._init_async_client(self.config)
+            async_client = self.ensure_async_client()
             completion_params = self.get_completion_params(**kwargs)
             response = await async_client.chat.completions.create(
                 messages=messages, **completion_params
@@ -215,6 +234,8 @@ class OpenRouterLLM(BaseLLM):
             if stream:
                 output = await self.get_stream_output_async(response, output_response=output_response)
             else:
+                # The network I/O is already awaited above; the response is fully in memory here,
+                # so this synchronous parsing/cost call does not block the event loop.
                 output: str = self.get_completion_output(response=response, output_response=output_response)
 
         except Exception as e:

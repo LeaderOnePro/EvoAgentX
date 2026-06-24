@@ -1,7 +1,8 @@
+# todo: Switch back to <tool_call> once CustomizeAction supports the canonical tool-call tag.
 TOOL_CALL_FORMAT = """
-<tool_call>
+<ToolCalling>
 {tool_calls}
-</tool_call>
+</ToolCalling>
 """
 
 
