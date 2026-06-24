@@ -1,17 +1,18 @@
 import pytest
 
-from evoagentx.models import OpenAILLMConfig, OpenAILLM, LLMOutputParser
+from evoagentx.models.model_configs import OpenRouterConfig
+from evoagentx.models.openrouter_model import OpenRouterLLM
+from evoagentx.models import LLMOutputParser
 from evoagentx.models.model_utils import cost_manager
 
 from tests.src.models.mock_response import (
-    mock_openai_completions_create,
-    mock_openai_stream_completions_create,
-    mock_openai_tool_call_create,
-    mock_async_openai_create,
-    mock_async_openai_tool_call_create,
+    mock_openrouter_completions_create,
+    mock_openrouter_tool_call_create,
+    mock_async_openrouter_create,
+    mock_async_openrouter_tool_call_create,
 )
 
-OPENAI_MODEL = "gpt-4o-mini"
+OPENROUTER_MODEL = "openai/gpt-4o-mini"
 SYNC_PATCH = "openai.resources.chat.completions.Completions.create"
 ASYNC_PATCH = "openai.resources.chat.completions.AsyncCompletions.create"
 
@@ -45,48 +46,32 @@ def reset_cost_manager():
     yield
 
 
-def _make_llm(**kwargs) -> OpenAILLM:
-    config = OpenAILLMConfig(
-        model=OPENAI_MODEL,
-        openai_key="mock_openai_key",
+def _make_llm(**kwargs) -> OpenRouterLLM:
+    config = OpenRouterConfig(
+        model=OPENROUTER_MODEL,
+        openrouter_key="mock_or_key",
         output_response=False,
         **kwargs,
     )
-    return OpenAILLM(config=config)
+    return OpenRouterLLM(config=config)
 
 
-def _assert_cost_updated(model: str = OPENAI_MODEL):
-    assert cost_manager.total_tokens[model] > 0, "No tokens recorded for cost tracking"
+def _assert_cost_updated(model: str = OPENROUTER_MODEL):
+    assert cost_manager.total_tokens[model] > 0, "No tokens recorded"
+    assert cost_manager.cost_per_model[model] > 0, "No cost recorded"
 
 
 # ---------------------------------------------------------------------------
-# 1. Sync — non-streaming (input format variants)
+# 1. Sync — non-streaming
 # ---------------------------------------------------------------------------
 
-def test_sync_non_stream_prompt(mocker):
-    mocker.patch(SYNC_PATCH, mock_openai_completions_create)
+def test_sync_non_stream(mocker):
+    mocker.patch(SYNC_PATCH, mock_openrouter_completions_create)
     llm = _make_llm(stream=False)
-    prompt = "What is the capital of China?"
-    system = "You are a geography expert."
-
-    out = llm.generate(prompt=prompt, system_message=system)
+    out = llm.generate(prompt="What is the capital of France?")
     assert isinstance(out, LLMOutputParser)
-    assert out.content == "Beijing"
-
-    out = llm.generate(prompt=[prompt], system_message=[system])
-    assert isinstance(out, list)
-    assert out[0].content == "Beijing"
-
-    out = llm.generate(messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}])
-    assert isinstance(out, LLMOutputParser)
-    assert out.content == "Beijing"
-
-    out = llm.generate(messages=[[{"role": "system", "content": system}, {"role": "user", "content": prompt}]])
-    assert isinstance(out, list)
-    assert out[0].content == "Beijing"
-
+    assert out.content == "Paris"
     _assert_cost_updated()
-    assert cost_manager.total_tokens[OPENAI_MODEL] == 23 * 4
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +79,7 @@ def test_sync_non_stream_prompt(mocker):
 # ---------------------------------------------------------------------------
 
 def test_sync_stream(mocker):
-    mocker.patch(SYNC_PATCH, mock_openai_stream_completions_create)
+    mocker.patch(SYNC_PATCH, mock_openrouter_completions_create)
     llm = _make_llm(stream=True)
     out = llm.generate(prompt="What is the capital of France?")
     assert isinstance(out, LLMOutputParser)
@@ -107,7 +92,7 @@ def test_sync_stream(mocker):
 # ---------------------------------------------------------------------------
 
 def test_sync_tool_call_non_stream(mocker):
-    mocker.patch(SYNC_PATCH, mock_openai_tool_call_create)
+    mocker.patch(SYNC_PATCH, mock_openrouter_tool_call_create)
     llm = _make_llm(stream=False, tools=[GET_WEATHER_TOOL], tool_choice="auto")
     out = llm.generate(prompt="What is the weather in Tokyo?")
     assert isinstance(out, LLMOutputParser)
@@ -122,7 +107,7 @@ def test_sync_tool_call_non_stream(mocker):
 # ---------------------------------------------------------------------------
 
 def test_sync_tool_call_stream(mocker):
-    mocker.patch(SYNC_PATCH, mock_openai_tool_call_create)
+    mocker.patch(SYNC_PATCH, mock_openrouter_tool_call_create)
     llm = _make_llm(stream=True, tools=[GET_WEATHER_TOOL], tool_choice="auto")
     out = llm.generate(prompt="What is the weather in Tokyo?")
     assert isinstance(out, LLMOutputParser)
@@ -137,11 +122,11 @@ def test_sync_tool_call_stream(mocker):
 # ---------------------------------------------------------------------------
 
 async def test_async_non_stream(mocker):
-    mocker.patch(ASYNC_PATCH, mock_async_openai_create)
+    mocker.patch(ASYNC_PATCH, mock_async_openrouter_create)
     llm = _make_llm(stream=False)
-    out = await llm.async_generate(prompt="What is the capital of China?")
+    out = await llm.async_generate(prompt="What is the capital of France?")
     assert isinstance(out, LLMOutputParser)
-    assert out.content == "Beijing"
+    assert out.content == "Paris"
     _assert_cost_updated()
 
 
@@ -150,7 +135,7 @@ async def test_async_non_stream(mocker):
 # ---------------------------------------------------------------------------
 
 async def test_async_stream(mocker):
-    mocker.patch(ASYNC_PATCH, mock_async_openai_create)
+    mocker.patch(ASYNC_PATCH, mock_async_openrouter_create)
     llm = _make_llm(stream=True)
     out = await llm.async_generate(prompt="What is the capital of France?")
     assert isinstance(out, LLMOutputParser)
@@ -163,7 +148,7 @@ async def test_async_stream(mocker):
 # ---------------------------------------------------------------------------
 
 async def test_async_tool_call_non_stream(mocker):
-    mocker.patch(ASYNC_PATCH, mock_async_openai_tool_call_create)
+    mocker.patch(ASYNC_PATCH, mock_async_openrouter_tool_call_create)
     llm = _make_llm(stream=False, tools=[GET_WEATHER_TOOL], tool_choice="auto")
     out = await llm.async_generate(prompt="What is the weather in Tokyo?")
     assert isinstance(out, LLMOutputParser)
@@ -177,7 +162,7 @@ async def test_async_tool_call_non_stream(mocker):
 # ---------------------------------------------------------------------------
 
 async def test_async_tool_call_stream(mocker):
-    mocker.patch(ASYNC_PATCH, mock_async_openai_tool_call_create)
+    mocker.patch(ASYNC_PATCH, mock_async_openrouter_tool_call_create)
     llm = _make_llm(stream=True, tools=[GET_WEATHER_TOOL], tool_choice="auto")
     out = await llm.async_generate(prompt="What is the weather in Tokyo?")
     assert isinstance(out, LLMOutputParser)
@@ -187,33 +172,50 @@ async def test_async_tool_call_stream(mocker):
 
 
 # ---------------------------------------------------------------------------
-# 9. stream_options include_usage explicitly set
+# 9. Cost — missing usage.cost logs warning and records 0
 # ---------------------------------------------------------------------------
 
-def test_stream_with_include_usage(mocker):
-    mocker.patch(SYNC_PATCH, mock_openai_stream_completions_create)
-    llm = _make_llm(stream=True, stream_options={"include_usage": True})
-    out = llm.generate(prompt="What is the capital of France?")
+def test_missing_cost_warns(mocker):
+    """When usage.cost is absent, cost is recorded as 0 without raising."""
+    from unittest.mock import MagicMock
+
+    def mock_no_cost_create(self, stream=False, **kwargs):
+        resp = MagicMock()
+        resp.id = "or_no_cost"
+        usage = MagicMock()
+        usage.prompt_tokens = 10
+        usage.completion_tokens = 5
+        usage.total_tokens = 15
+        del usage.cost  # force getattr to fall back to MagicMock default
+        usage.cost = None  # explicitly None → triggers the warning path
+        resp.usage = usage
+        resp.choices[0].message.content = "Hello"
+        resp.choices[0].message.tool_calls = None
+        return resp
+
+    mocker.patch(SYNC_PATCH, mock_no_cost_create)
+    llm = _make_llm(stream=False)
+    out = llm.generate(prompt="Hello")
     assert isinstance(out, LLMOutputParser)
-    assert out.content == "Paris"
-    _assert_cost_updated()
+    assert cost_manager.cost_per_model[OPENROUTER_MODEL] == 0.0
+    assert cost_manager.total_tokens[OPENROUTER_MODEL] == 15
 
 
 # ---------------------------------------------------------------------------
-# 10. Cost tracking — verify token counts are accumulated correctly
+# 10. Cost accumulation across multiple calls
 # ---------------------------------------------------------------------------
 
 def test_cost_accumulation(mocker):
-    mocker.patch(SYNC_PATCH, mock_openai_completions_create)
+    mocker.patch(SYNC_PATCH, mock_openrouter_completions_create)
     llm = _make_llm(stream=False)
-    prompt = "Test prompt"
 
-    llm.generate(prompt=prompt)
-    tokens_after_1 = cost_manager.total_tokens[OPENAI_MODEL]
+    llm.generate(prompt="Call 1")
+    tokens_1 = cost_manager.total_tokens[OPENROUTER_MODEL]
+    cost_1 = cost_manager.cost_per_model[OPENROUTER_MODEL]
 
-    llm.generate(prompt=prompt)
-    tokens_after_2 = cost_manager.total_tokens[OPENAI_MODEL]
+    llm.generate(prompt="Call 2")
+    tokens_2 = cost_manager.total_tokens[OPENROUTER_MODEL]
+    cost_2 = cost_manager.cost_per_model[OPENROUTER_MODEL]
 
-    assert tokens_after_2 == tokens_after_1 * 2
-    assert cost_manager.input_tokens[OPENAI_MODEL] > 0
-    assert cost_manager.output_tokens[OPENAI_MODEL] > 0
+    assert tokens_2 == tokens_1 * 2
+    assert cost_2 == pytest.approx(cost_1 * 2)

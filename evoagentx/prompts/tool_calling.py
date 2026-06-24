@@ -1,3 +1,11 @@
+# todo: Switch back to <tool_call> once CustomizeAction supports the canonical tool-call tag.
+TOOL_CALL_FORMAT = """
+<ToolCalling>
+{tool_calls}
+</ToolCalling>
+"""
+
+
 OUTPUT_EXTRACTION_PROMPT = """
 You are given the following text:
 {text}
