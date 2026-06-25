@@ -114,6 +114,8 @@ ENV/
 
 # Misc
 .DS_Store
+.agents/
+.claude/
 /AGENTS.md
 /CLAUDE.md
 
